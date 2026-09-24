@@ -5,7 +5,6 @@ import { join } from "node:path";
 import { expectDefined } from "@openclaw/normalization-core";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  createPackageManagerWarningMessage,
   detectLifecyclePackageManager,
   enforceSupportedNodeRuntime,
   nodeVersionSatisfiesPackageEngine,
@@ -14,9 +13,7 @@ import {
   removeLegacyPackageInstallGuard,
   warnIfNonPnpmLifecycle,
 } from "../../scripts/preinstall-package-manager-warning.mjs";
-import { isSupportedNodeVersion } from "../../src/infra/runtime-guard.js";
 import { resolveTestNodeExecPath } from "../../src/test-utils/node-process.js";
-import { NODE_RELEASE_VERSION_CASES } from "../helpers/node-version-cases.js";
 import { useAutoCleanupTempDirTracker } from "../helpers/temp-dir.js";
 
 const EXPECTED_NODE_ENGINE_RANGE = ">=24.16.0 <25 || >=26.1.0";
@@ -28,10 +25,16 @@ describe("install runtime enforcement", () => {
     expect(readPackageNodeEngine()).toBe(EXPECTED_NODE_ENGINE_RANGE);
   });
 
-  it.each(NODE_RELEASE_VERSION_CASES)("matches the CLI runtime guard for Node %s", (version) => {
-    expect(nodeVersionSatisfiesPackageEngine(version, EXPECTED_NODE_ENGINE_RANGE)).toBe(
-      isSupportedNodeVersion(version),
-    );
+  it.each([
+    ["24.15.0", false],
+    ["24.16.0", true],
+    ["25.9.0", false],
+    ["26.0.0", false],
+    ["26.1.0", true],
+    ["v24.16.0+local.1", true],
+    [" 24.16.0+vendor-1.sha ", true],
+  ] as const)("enforces the package engine range for Node %s", (version, supported) => {
+    expect(nodeVersionSatisfiesPackageEngine(version, EXPECTED_NODE_ENGINE_RANGE)).toBe(supported);
   });
 
   it.each([
@@ -488,16 +491,6 @@ describe("detectLifecyclePackageManager", () => {
   });
 });
 
-describe("createPackageManagerWarningMessage", () => {
-  it("returns null for pnpm", () => {
-    expect(createPackageManagerWarningMessage("pnpm")).toBeNull();
-  });
-
-  it("warns for npm installs", () => {
-    expect(createPackageManagerWarningMessage("npm")).toContain("prefer: corepack pnpm install");
-  });
-});
-
 describe("warnIfNonPnpmLifecycle", () => {
   it("warns once for npm lifecycle runs", () => {
     const warn = vi.fn();
@@ -512,6 +505,7 @@ describe("warnIfNonPnpmLifecycle", () => {
     expect(warn).toHaveBeenCalledTimes(1);
     const [message] = expectDefined(warn.mock.calls[0], "package manager warning call");
     expect(message).toContain("detected npm");
+    expect(message).toContain("prefer: corepack pnpm install");
   });
 
   it("stays quiet for pnpm", () => {

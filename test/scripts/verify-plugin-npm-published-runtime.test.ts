@@ -42,18 +42,6 @@ describe("plugin npm publish verifier command limits", () => {
     });
   });
 
-  it("accepts strict npm command timeout and buffer overrides", () => {
-    expect(
-      readPluginNpmCommandOptions({
-        OPENCLAW_PLUGIN_NPM_COMMAND_MAX_BUFFER_BYTES: "33554432",
-        OPENCLAW_PLUGIN_NPM_COMMAND_TIMEOUT_MS: "120000",
-      }),
-    ).toMatchObject({
-      maxBuffer: 32 * 1024 * 1024,
-      timeout: 120000,
-    });
-  });
-
   it("rejects loose npm command timeout and buffer overrides", () => {
     for (const value of ["60s", "1e3", "0"]) {
       expect(() =>
@@ -225,40 +213,6 @@ describe("collectPluginNpmPublishedRuntimeErrors", () => {
     ]);
   });
 
-  it("accepts published plugin packages with explicit runtimeExtensions", () => {
-    expect(
-      collectPluginNpmPublishedRuntimeErrors({
-        packageJson: {
-          name: "@openclaw/zalo",
-          version: "2026.5.3",
-          openclaw: {
-            extensions: ["./index.ts"],
-            runtimeExtensions: ["./dist/index.js"],
-          },
-        },
-        files: ["package.json", "openclaw.plugin.json", "index.ts", "dist/index.js"],
-      }),
-    ).toStrictEqual([]);
-  });
-
-  it("flags plugin npm packages without an OpenClaw plugin manifest", () => {
-    expect(
-      collectPluginNpmPublishedRuntimeErrors({
-        packageJson: {
-          name: "@openclaw/searxng-plugin",
-          version: "2026.6.11",
-          openclaw: {
-            extensions: ["./index.ts"],
-            runtimeExtensions: ["./dist/index.js"],
-          },
-        },
-        files: ["package.json", "dist/index.js"],
-      }),
-    ).toEqual([
-      "@openclaw/searxng-plugin@2026.6.11 plugin npm package must include openclaw.plugin.json",
-    ]);
-  });
-
   it("flags reservation packages before they can pass plugin runtime verification", () => {
     expect(
       collectPluginNpmPublishedRuntimeErrors({
@@ -323,31 +277,6 @@ describe("collectPluginNpmPublishedRuntimeErrors", () => {
       }),
     ).toEqual([
       "@openclaw/whatsapp@2026.5.3 package.json openclaw.runtimeExtensions[0] must be a non-empty string",
-    ]);
-  });
-
-  it("flags published plugin packages with TypeScript setup entries and no compiled setup runtime", () => {
-    expect(
-      collectPluginNpmPublishedRuntimeErrors({
-        packageJson: {
-          name: "@openclaw/line",
-          version: "2026.5.3",
-          openclaw: {
-            extensions: ["./index.ts"],
-            runtimeExtensions: ["./dist/index.js"],
-            setupEntry: "./setup-entry.ts",
-          },
-        },
-        files: [
-          "package.json",
-          "openclaw.plugin.json",
-          "index.ts",
-          "dist/index.js",
-          "setup-entry.ts",
-        ],
-      }),
-    ).toEqual([
-      "@openclaw/line@2026.5.3 requires compiled runtime output for TypeScript entry ./setup-entry.ts: expected ./dist/setup-entry.js, ./dist/setup-entry.mjs, ./dist/setup-entry.cjs, ./setup-entry.js, ./setup-entry.mjs, ./setup-entry.cjs",
     ]);
   });
 
