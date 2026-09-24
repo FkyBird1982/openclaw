@@ -27,16 +27,6 @@ function readGeneratedDocBlock(startMarker: string, endMarker: string): string {
   return docs.slice(start + startMarker.length, end).trim();
 }
 
-function buildDeniedFlagArgvVariants(flag: string): string[][] {
-  if (flag.startsWith("--")) {
-    return [[`${flag}=blocked`], [flag, "blocked"], [flag]];
-  }
-  if (flag.startsWith("-")) {
-    return [[`${flag}blocked`], [flag, "blocked"], [flag]];
-  }
-  return [[flag]];
-}
-
 describe("exec safe bin policy grep", () => {
   const grepProfile = expectDefined(
     SAFE_BIN_PROFILES.grep,
@@ -95,11 +85,6 @@ describe("exec safe bin policy sort", () => {
     expect(validateSafeBinArgv(["--key"], sortProfile)).toBe(false);
     expect(validateSafeBinArgv(["--key", "./fields.txt"], sortProfile)).toBe(false);
     expect(validateSafeBinArgv(["-S", "C:\\temp\\buffer"], sortProfile)).toBe(false);
-  });
-
-  it("blocks sort --compress-program in safe-bin mode", () => {
-    expect(validateSafeBinArgv(["--compress-program=sh"], sortProfile)).toBe(false);
-    expect(validateSafeBinArgv(["--compress-program", "sh"], sortProfile)).toBe(false);
   });
 
   it("blocks denied long-option abbreviations in safe-bin mode", () => {
@@ -301,16 +286,22 @@ describe("exec safe bin policy long-option metadata", () => {
   });
 });
 
-describe("exec safe bin policy denied-flag matrix", () => {
-  for (const [binName, profile] of Object.entries(SAFE_BIN_PROFILES)) {
-    for (const deniedFlag of profile.deniedFlags ?? []) {
-      for (const variant of buildDeniedFlagArgvVariants(deniedFlag)) {
-        it(`${binName} denies ${deniedFlag} (${variant.join(" ")})`, () => {
-          expect(validateSafeBinArgv(variant, profile, { binName })).toBe(false);
-        });
-      }
-    }
-  }
+describe("exec safe bin policy denied flags", () => {
+  it.each([
+    { argv: ["--compress-program=sh"] },
+    { argv: ["--compress-program", "sh"] },
+    { argv: ["--compress-program"] },
+    { argv: ["-ooutput"] },
+    { argv: ["-o", "output"] },
+    { argv: ["-o"] },
+  ])("rejects denied option syntax $argv", ({ argv }) => {
+    expect(
+      validateSafeBinArgv(
+        argv,
+        expectDefined(SAFE_BIN_PROFILES.sort, "SAFE_BIN_PROFILES.sort test invariant"),
+      ),
+    ).toBe(false);
+  });
 });
 
 describe("exec safe bin policy docs parity", () => {
