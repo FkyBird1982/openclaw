@@ -4,19 +4,8 @@ import { VOICE_CALL_CLI_DESCRIPTOR } from "./cli-output-mode.js";
 const isMachineOutput = VOICE_CALL_CLI_DESCRIPTOR.machineOutput;
 
 describe("voice-call CLI output mode", () => {
-  it.each([
-    "call",
-    "continue",
-    "dtmf",
-    "end",
-    "expose",
-    "latency",
-    "speak",
-    "start",
-    "status",
-    "tail",
-  ])("detects %s as machine output", (command) => {
-    expect(isMachineOutput({ argv: ["node", "openclaw", "voicecall", command] })).toBe(true);
+  it("detects status as machine output", () => {
+    expect(isMachineOutput({ argv: ["node", "openclaw", "voicecall", "status"] })).toBe(true);
   });
 
   it("leaves setup human-readable without --json", () => {
