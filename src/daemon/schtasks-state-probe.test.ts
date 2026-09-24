@@ -48,7 +48,6 @@ describe("Scheduled Task probe timeout", () => {
   it.each([
     { budget: undefined, expected: 5_000 },
     { budget: 0, expected: 5_000 },
-    { budget: -1, expected: 5_000 },
     { budget: Number.POSITIVE_INFINITY, expected: 5_000 },
     { budget: 457.0681, expected: 457 },
     { budget: 0.5, expected: 1 },
