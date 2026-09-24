@@ -22,6 +22,13 @@ import { listen } from "./node-worker-transfer-client.test-support.js";
 
 const tempDirs = useAutoCleanupTempDirTracker(afterEach);
 
+async function closeServer(server: http.Server | https.Server) {
+  server.closeAllConnections();
+  await new Promise<void>((resolve) => {
+    server.close(() => resolve());
+  });
+}
+
 type DrainProbe = {
   emitter: EventEmitter;
   drains: number;
@@ -137,10 +144,7 @@ describe("node worker transfer client", () => {
           ],
         });
       } finally {
-        server.closeAllConnections();
-        await new Promise<void>((resolve) => {
-          server.close(() => resolve());
-        });
+        await closeServer(server);
       }
     },
   );
@@ -170,18 +174,11 @@ describe("node worker transfer client", () => {
       }
       res.writeHead(404).end();
     });
-    await new Promise<void>((resolve, reject) => {
-      server.once("error", reject);
-      server.listen(0, "127.0.0.1", resolve);
-    });
-    const address = server.address();
-    if (!address || typeof address === "string") {
-      throw new Error("test transfer server did not bind");
-    }
+    const gatewayUrl = await listen(server);
     try {
       await expect(
         runNodeWorkerWorkspaceTransfer({
-          gatewayUrl: `ws://127.0.0.1:${address.port}`,
+          gatewayUrl,
           environmentId: "environment-cut",
           workspaceDir,
           manifestHome: root,
@@ -197,10 +194,7 @@ describe("node worker transfer client", () => {
         ),
       ).toEqual([]);
     } finally {
-      server.closeAllConnections();
-      await new Promise<void>((resolve) => {
-        server.close(() => resolve());
-      });
+      await closeServer(server);
     }
   });
 
@@ -336,10 +330,7 @@ describe("node worker transfer client", () => {
       );
       await expect(fs.access(staleStaging)).rejects.toMatchObject({ code: "ENOENT" });
     } finally {
-      server.closeAllConnections();
-      await new Promise<void>((resolve) => {
-        server.close(() => resolve());
-      });
+      await closeServer(server);
     }
   });
 
@@ -456,10 +447,7 @@ describe("node worker transfer client", () => {
       expect(connectionCount).toBe(1);
     } finally {
       pinnedAgent.off("free", hidePeerCertificate);
-      server.closeAllConnections();
-      await new Promise<void>((resolve) => {
-        server.close(() => resolve());
-      });
+      await closeServer(server);
     }
   });
 
@@ -532,10 +520,7 @@ describe("node worker transfer client", () => {
       expect(secureConnections).toBe(2);
       expect(sessionReuse.every((reused) => !reused)).toBe(true);
     } finally {
-      server.closeAllConnections();
-      await new Promise<void>((resolve) => {
-        server.close(() => resolve());
-      });
+      await closeServer(server);
     }
   });
 
@@ -660,10 +645,7 @@ describe("node worker transfer client", () => {
       ).rejects.toThrow("gateway TLS fingerprint mismatch");
       expect(requestCount).toBe(0);
     } finally {
-      server.closeAllConnections();
-      await new Promise<void>((resolve) => {
-        server.close(() => resolve());
-      });
+      await closeServer(server);
     }
   });
 
@@ -702,10 +684,7 @@ describe("node worker transfer client", () => {
           }),
         ).rejects.toThrow(expected);
       } finally {
-        server.closeAllConnections();
-        await new Promise<void>((resolve) => {
-          server.close(() => resolve());
-        });
+        await closeServer(server);
       }
     },
   );
@@ -883,10 +862,7 @@ describe("node worker transfer client", () => {
       await expect(fs.readFile(workspaceFile, "utf8")).resolves.toBe("mutated!\n");
     } finally {
       requestSpy.mockRestore();
-      server.closeAllConnections();
-      await new Promise<void>((resolve) => {
-        server.close(() => resolve());
-      });
+      await closeServer(server);
     }
   });
 
@@ -992,10 +968,7 @@ describe("node worker transfer client", () => {
       expect(requestProbes.every((probe) => probe.emitter.listenerCount("error") === 0)).toBe(true);
     } finally {
       requestSpy.mockRestore();
-      server.closeAllConnections();
-      await new Promise<void>((resolve) => {
-        server.close(() => resolve());
-      });
+      await closeServer(server);
     }
   });
 });
