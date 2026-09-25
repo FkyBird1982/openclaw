@@ -1,4 +1,3 @@
-// Nextcloud Talk plugin module implements channel behavior.
 import { describeWebhookAccountSnapshot } from "openclaw/plugin-sdk/account-helpers";
 import { createChatChannelPlugin } from "openclaw/plugin-sdk/channel-core";
 import { createLoggedPairingApprovalNotifier } from "openclaw/plugin-sdk/channel-pairing";
@@ -122,7 +121,7 @@ export const nextcloudTalkPlugin: ChannelPlugin<ResolvedNextcloudTalkAccount> =
         normalizeTarget: normalizeNextcloudTalkMessagingTarget,
         inferTargetChatType: ({ to }) =>
           normalizeNextcloudTalkMessagingTarget(to) ? "group" : undefined,
-        resolveOutboundSessionRoute: (params) => resolveNextcloudTalkOutboundSessionRoute(params),
+        resolveOutboundSessionRoute: resolveNextcloudTalkOutboundSessionRoute,
         targetResolver: {
           looksLikeId: looksLikeNextcloudTalkTargetId,
           hint: "<roomToken>",
@@ -205,27 +204,9 @@ export const nextcloudTalkPlugin: ChannelPlugin<ResolvedNextcloudTalkAccount> =
       },
       attachedResults: {
         channel: "nextcloud-talk",
-        sendText: async (ctx) =>
-          await nextcloudTalkMessageAdapter.send.text({
-            cfg: ctx.cfg,
-            to: ctx.to,
-            text: ctx.text,
-            accountId: ctx.accountId,
-            replyToId: ctx.replyToId,
-            onPlatformSendDispatch: ctx.onPlatformSendDispatch,
-            assertDirectAdapterHandoff: ctx.assertDirectAdapterHandoff,
-          }),
-        sendMedia: async (ctx) =>
-          await nextcloudTalkMessageAdapter.send.media({
-            cfg: ctx.cfg,
-            to: ctx.to,
-            text: ctx.text,
-            mediaUrl: ctx.mediaUrl ?? "",
-            accountId: ctx.accountId,
-            replyToId: ctx.replyToId,
-            onPlatformSendDispatch: ctx.onPlatformSendDispatch,
-            assertDirectAdapterHandoff: ctx.assertDirectAdapterHandoff,
-          }),
+        sendText: (ctx) => nextcloudTalkMessageAdapter.send.text(ctx),
+        sendMedia: (ctx) =>
+          nextcloudTalkMessageAdapter.send.media({ ...ctx, mediaUrl: ctx.mediaUrl ?? "" }),
       },
     },
   });
