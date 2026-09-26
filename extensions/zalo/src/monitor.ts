@@ -588,7 +588,7 @@ async function processMessageWithPipeline(params: ZaloMessagePipelineParams): Pr
               path: mediaPath,
               url: mediaPath,
               contentType: mediaType,
-              kind: mediaKind,
+              kind: mediaKind ?? undefined,
             },
           ]
         : undefined,
