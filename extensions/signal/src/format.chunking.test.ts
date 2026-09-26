@@ -197,7 +197,6 @@ describe("markdownToSignalTextChunks", () => {
         })),
       );
     });
-
   });
 
   describe("link expansion with style preservation", () => {

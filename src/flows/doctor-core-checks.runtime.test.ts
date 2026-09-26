@@ -320,7 +320,6 @@ describe("doctor runtime tool schema checks", () => {
     },
   );
 
-
   it("reports exact MCP allowlists when the safe server name contains the separator", async () => {
     mockBundleDiagnostic("my__server");
 
