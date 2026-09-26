@@ -245,6 +245,7 @@ export async function finishGatewayStartup(params: {
     startupTrace.measure("runtime.post-attach", () =>
       loadGatewayStartupPostAttachModule().then(({ startGatewayPostAttachRuntime }) =>
         startGatewayPostAttachRuntime({
+          scheduler: runtime.scheduler,
           minimalTestGateway,
           updateCanary: opts.updateCanary,
           cfgAtStart,
@@ -443,6 +444,7 @@ export async function finishGatewayStartup(params: {
   let appliedCustomPluginUiEnabled =
     gatewayPluginConfigAtStart.gateway?.controlUi?.experimental?.customPlugins === true;
   const configReloaderParams: Parameters<typeof startManagedGatewayConfigReloader>[0] = {
+    scheduler: runtime.scheduler,
     onReloadEnabledChange: tlsRenewal?.setEnabled,
     configRevisionProjector: gatewayRequestContext.configRevisionProjector,
     resolveGatewayContext: resolvePluginGatewayContext,

@@ -11,6 +11,7 @@ import {
 } from "../infra/delivery-queue-state-context.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import type { GatewayActiveWorkInspectors } from "../infra/gateway-active-work.js";
+import type { GatewayScheduler } from "../infra/gateway-scheduler.js";
 import { hasRestartSentinel } from "../infra/restart-sentinel.js";
 import type { createGatewayUpdateCheck } from "../infra/update-startup.js";
 import type { PluginHookGatewayCronService } from "../plugins/hook-gateway.types.js";
@@ -128,6 +129,7 @@ async function waitForAcpRuntimeBackendReady(params: {
 
 /** Start post-ready sidecars such as channels, hooks, plugin services, and cleanup tasks. */
 export async function startGatewaySidecars(params: {
+  scheduler: GatewayScheduler;
   restartSentinelContext?: DeliveryQueueStateContext;
   cfg: OpenClawConfig;
   getModelRuntimeConfig?: () => OpenClawConfig;
@@ -504,6 +506,7 @@ export async function startGatewaySidecars(params: {
             cfg: params.cfg,
             log: params.logHooks,
             signal,
+            scheduler: params.scheduler,
           });
         },
       }),
@@ -613,6 +616,7 @@ const defaultGatewayPostAttachRuntimeDeps: GatewayPostAttachRuntimeDeps = {
 /** Start work that depends on the HTTP server being attached and visible. */
 export async function startGatewayPostAttachRuntime(
   params: {
+    scheduler: GatewayScheduler;
     minimalTestGateway: boolean;
     updateCanary?: boolean;
     cfgAtStart: OpenClawConfig;
@@ -898,6 +902,7 @@ export async function startGatewayPostAttachRuntime(
                 : params.getCurrentPluginMetadataSnapshot?.();
               return await measureStartup(params.startupTrace, "sidecars.total", () =>
                 runtimeDeps.startGatewaySidecars({
+                  scheduler: params.scheduler,
                   restartSentinelContext,
                   cfg: startupRuntimeCurrent
                     ? params.gatewayPluginConfigAtStart
