@@ -33,7 +33,7 @@ function createLookupFn(addresses: Array<{ address: string; family: number }>): 
 describe.each([
   ["ssrfPolicyFromDangerouslyAllowPrivateNetwork", ssrfPolicyFromDangerouslyAllowPrivateNetwork],
   ["ssrfPolicyFromAllowPrivateNetwork", ssrfPolicyFromAllowPrivateNetwork],
-] as const)("%s", (_name, createPolicy) => {
+] as const)("%s", (_policyName, createPolicy) => {
   it.each([
     ["returns undefined for missing input", undefined, undefined],
     ["returns undefined when private-network access is disabled", false, undefined],
