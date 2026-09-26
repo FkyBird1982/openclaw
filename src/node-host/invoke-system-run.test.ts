@@ -2546,6 +2546,20 @@ describe("handleSystemRunInvoke mac app exec host routing", () => {
     );
   });
 
+  it("requires a canonical plan for forwarded auto-review provenance", async () => {
+    const invoke = await runLocalSystemInvokeWithPolicy("full", "on-miss", {
+      approvalSource: "auto-review",
+      prepareDelayedApprovalPlan: false,
+    });
+
+    expect(invoke.runCommand).not.toHaveBeenCalled();
+    expectInvokeErrorMessage(
+      invoke.sendInvokeResult,
+      "approvalSource requires matching systemRunPlan",
+      true,
+    );
+  });
+
   it("requires a canonical plan for explicit approval provenance", async () => {
     const invoke = await runLocalSystemInvokeWithPolicy("full", "always", {
       approvalDecision: "allow-once",

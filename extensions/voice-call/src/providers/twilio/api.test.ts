@@ -161,6 +161,28 @@ describe("twilioApiRequest", () => {
     expect(release).toHaveBeenCalledTimes(1);
   });
 
+  it("bounds twilio error bodies and cancels unread overflow", async () => {
+    const release = vi.fn(async () => {});
+    const tracked = cancelTrackedTextResponse("x".repeat(9 * 1024), { status: 400 });
+    fetchWithSsrFGuardMock.mockResolvedValue({
+      response: tracked.response,
+      release,
+    });
+
+    try {
+      await twilioApiRequest(DEFAULT_REQUEST);
+      throw new Error("expected Twilio API request to reject");
+    } catch (error) {
+      expect(error).toBeInstanceOf(TwilioApiError);
+      const twilioError = error as TwilioApiError;
+      expect(twilioError.message).toContain("Twilio API error: 400 ");
+      expect(twilioError.message).toContain("... [truncated]");
+      expect(twilioError.responseText.length).toBeLessThan(8_300);
+    }
+    expect(tracked.wasCanceled()).toBe(true);
+    expect(release).toHaveBeenCalledTimes(1);
+  });
+
   it("wraps malformed json success responses with an owned error", async () => {
     const release = vi.fn(async () => {});
     fetchWithSsrFGuardMock.mockResolvedValue({

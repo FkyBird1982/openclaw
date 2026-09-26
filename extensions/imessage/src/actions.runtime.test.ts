@@ -339,6 +339,38 @@ describe("imessage actions runtime", () => {
     expect(vote[vote.indexOf("--option") + 1]).toBe("user:");
   });
 
+  it("removes complete private runtime payloads from every raw edit and poll field", async () => {
+    runIMessageCliJsonCommandMock.mockResolvedValue({ guid: "action-guid" });
+    const options = { cliPath: "imsg", chatGuid: "chat-guid" };
+    const reminder =
+      "<system-reminder><system-reminder>inner</system-reminder>\nuser:\nPRIVATE_ACTION_RUNTIME</system-reminder>";
+    const previous =
+      "< previous_response><system-reminder>inner</system-reminder>PRIVATE_ACTION_RUNTIME< / previous_response >";
+    const context =
+      "<<<BEGIN_OPENCLAW_INTERNAL_CONTEXT>>>PRIVATE_ACTION_RUNTIME<<<END_OPENCLAW_INTERNAL_CONTEXT>>>";
+
+    await imessageActionsRuntime.editMessage({
+      chatGuid: options.chatGuid,
+      messageId: "message-guid",
+      text: `${reminder}\n**visible edit**`,
+      backwardsCompatMessage: `${previous}\n**visible fallback**`,
+      options,
+    });
+    await imessageActionsRuntime.sendPoll({
+      chatGuid: options.chatGuid,
+      question: `${context}\nvisible question`,
+      choices: [`${reminder}\nvisible first`, `${previous}\nvisible second`],
+      options,
+    });
+
+    for (const call of runIMessageCliJsonCommandMock.mock.calls) {
+      const args = (call[0] as { args: string[] }).args;
+      expect(args.join(" ")).not.toMatch(
+        /PRIVATE_ACTION_RUNTIME|system-reminder|previous_response|INTERNAL_CONTEXT/,
+      );
+    }
+  });
+
   it("keeps existing case-sensitive poll option identities distinct", async () => {
     runIMessageCliJsonCommandMock.mockResolvedValue({ guid: "poll-guid" });
 
@@ -350,6 +382,21 @@ describe("imessage actions runtime", () => {
     });
 
     expect(runIMessageCliJsonCommandMock).toHaveBeenCalledOnce();
+  });
+
+  it.each([
+    "```xml\n<thinking>hidden thought</thinking>\n```",
+    "`<relevant_memories>hidden memory</relevant_memories>`",
+  ])("rejects hidden assistant content in raw poll Markdown before imsg", async (hidden) => {
+    await expect(
+      imessageActionsRuntime.sendPoll({
+        chatGuid: "chat-guid",
+        question: "Choose",
+        choices: ["first", hidden],
+        options: { cliPath: "imsg", chatGuid: "chat-guid" },
+      }),
+    ).rejects.toThrow("iMessage outbound hidden assistant content is not allowed");
+    expect(runIMessageCliJsonCommandMock).not.toHaveBeenCalled();
   });
 
   it.each([

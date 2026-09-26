@@ -240,14 +240,16 @@ describe("IMessageRpcClient child stream error handling", () => {
     );
   });
 
-  it.each([
-    ["stdout", "error event then close"],
-    ["stderr", "error event then close"],
-    ["stdin", "error event then close"],
-    ["stdout", "errored close only"],
-  ] as const)(
-    "catches a %s stream error via %s and rejects in-flight requests instead of crashing",
-    async (streamName, notification) => {
+  it.each(
+    (["stdout", "stderr", "stdin"] as const).flatMap((streamName) =>
+      (["error event then close", "errored close only"] as const).map((notification) => ({
+        streamName,
+        notification,
+      })),
+    ),
+  )(
+    "catches a $streamName stream error via $notification and rejects in-flight requests instead of crashing",
+    async ({ streamName, notification }) => {
       const client = new IMessageRpcClient({ cliPath: "imsg" });
       await client.start();
 

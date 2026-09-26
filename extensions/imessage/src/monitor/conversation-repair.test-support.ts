@@ -161,6 +161,38 @@ describe("repairIMessageConversationAnchor", () => {
     expect(ctxPayload.To).toBe("chat_id:42");
   });
 
+  it("drops fail-closed when authoritative history says is_from_me=true", async () => {
+    const runtime = { error: vi.fn() };
+    const client = mockClient([
+      {
+        id: 42,
+        messages: [
+          {
+            guid: "ANCHORLESS-GUID-1",
+            chat_id: 42,
+            chat_guid: "iMessage;-;+15550000002",
+            chat_identifier: "+15550000002",
+            sender: "+15550000002",
+            destination_caller_id: "+15550000001",
+            is_from_me: true,
+            is_group: false,
+          },
+        ],
+      },
+    ]);
+
+    await expect(
+      repairIMessageConversationAnchor({
+        client: client as never,
+        message: anchorlessMessage({ is_from_me: false }),
+        runtime,
+      }),
+    ).resolves.toBeNull();
+    expect(runtime.error.mock.calls.at(-1)?.[0]).toContain(
+      "recovered authoritative row is from-me",
+    );
+  });
+
   it("drops fail-closed when exact-GUID history projections conflict", async () => {
     const runtime = { error: vi.fn() };
     const client = mockClient([

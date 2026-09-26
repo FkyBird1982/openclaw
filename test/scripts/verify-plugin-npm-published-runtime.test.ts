@@ -280,6 +280,31 @@ describe("collectPluginNpmPublishedRuntimeErrors", () => {
     ]);
   });
 
+  it("flags published plugin packages with TypeScript setup entries and no compiled setup runtime", () => {
+    expect(
+      collectPluginNpmPublishedRuntimeErrors({
+        packageJson: {
+          name: "@openclaw/line",
+          version: "2026.5.3",
+          openclaw: {
+            extensions: ["./index.ts"],
+            runtimeExtensions: ["./dist/index.js"],
+            setupEntry: "./setup-entry.ts",
+          },
+        },
+        files: [
+          "package.json",
+          "openclaw.plugin.json",
+          "index.ts",
+          "dist/index.js",
+          "setup-entry.ts",
+        ],
+      }),
+    ).toEqual([
+      "@openclaw/line@2026.5.3 requires compiled runtime output for TypeScript entry ./setup-entry.ts: expected ./dist/setup-entry.js, ./dist/setup-entry.mjs, ./dist/setup-entry.cjs, ./setup-entry.js, ./setup-entry.mjs, ./setup-entry.cjs",
+    ]);
+  });
+
   it("accepts published plugin packages with explicit runtimeSetupEntry", () => {
     expect(
       collectPluginNpmPublishedRuntimeErrors({

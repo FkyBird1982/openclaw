@@ -37,14 +37,7 @@ describe.runIf(process.platform !== "win32")("native package transactions", () =
       pnpm12: true,
     } as const,
     ...(["pnpm10", "pnpm11", "bun"] as const).flatMap((layout) =>
-      (
-        [
-          "none",
-          "before",
-          "after",
-          ...(layout === "pnpm11" ? (["upgrade", "remove"] as const) : []),
-        ] as const
-      ).map((siblingChange) => ({
+      (["none", "before", "after", "upgrade", "remove"] as const).map((siblingChange) => ({
         layout,
         siblingChange,
         shimFailure: false,

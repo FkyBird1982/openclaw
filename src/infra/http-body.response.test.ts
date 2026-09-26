@@ -508,6 +508,18 @@ describe("readResponseTextSnippet", () => {
     await expect(readResponseTextSnippet(response, options)).resolves.toBe(expected);
   });
 
+  it("cancels immediately when a diagnostic prefix fills the byte budget", async () => {
+    const cancel = vi.fn();
+    const response = new Response(makeStallingStream([new TextEncoder().encode("exact")], cancel));
+
+    await expect(readResponseTextPrefix(response, 5)).resolves.toEqual({
+      text: "exact",
+      size: 5,
+      truncated: true,
+    });
+    expect(cancel).toHaveBeenCalledTimes(1);
+  });
+
   it.each([
     { maxBytes: 0.5, text: "", size: 3 },
     { maxBytes: 3.5, text: "abc", size: 6 },

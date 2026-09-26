@@ -392,6 +392,20 @@ describe("maybeResolveIMessageApprovalPollVote", () => {
     expect(resolverMocks.resolveApprovalOverGateway).not.toHaveBeenCalled();
   });
 
+  it("denies a group vote from a member outside allowFrom", async () => {
+    await bindGroup();
+
+    await expect(
+      maybeResolveIMessageApprovalPollVote({
+        cfg,
+        accountId: "default",
+        message: buildGroupVote({ sender: "+15559999999", participant: "+15559999999" }),
+      }),
+    ).resolves.toBe(true);
+
+    expect(resolverMocks.resolveApprovalOverGateway).not.toHaveBeenCalled();
+  });
+
   it("resolves a group vote from an approver", async () => {
     await bindGroup();
 

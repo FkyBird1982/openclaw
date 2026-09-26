@@ -161,13 +161,21 @@ describe("downloadSlackFile", () => {
     expectNoMediaDownload(result);
   });
 
-  it("downloads when share metadata proves the requested channel", async () => {
-    const client = createClient();
-    client.files.info.mockResolvedValueOnce({
-      file: makeSlackFileInfo({
+  it.each([
+    { name: "public channel metadata", file: { channels: ["C123"] } },
+    { name: "private channel metadata", file: { channels: undefined, groups: ["C123"] } },
+    { name: "DM metadata", file: { channels: undefined, ims: ["C123"] } },
+    {
+      name: "share metadata",
+      file: {
         channels: undefined,
         shares: { private: { C123: [{ ts: "111.111" }] } },
-      }),
+      },
+    },
+  ])("downloads when $name proves the requested channel", async ({ file }) => {
+    const client = createClient();
+    client.files.info.mockResolvedValueOnce({
+      file: makeSlackFileInfo(file),
     });
     resolveSlackMedia.mockResolvedValueOnce([makeResolvedSlackMedia()]);
 

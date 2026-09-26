@@ -30,6 +30,7 @@ function signalEvent(params?: {
   timestamp?: number;
   groupId?: string;
   message?: string;
+  reaction?: boolean;
 }): SignalSseEvent {
   const timestamp = params?.timestamp ?? 1_700_000_000_001;
   return {
@@ -43,7 +44,9 @@ function signalEvent(params?: {
         timestamp,
         dataMessage: {
           timestamp,
-          message: params?.message ?? "hello",
+          ...(params?.reaction
+            ? { reaction: { emoji: "👍", targetSentTimestamp: timestamp - 1 } }
+            : { message: params?.message ?? "hello" }),
           ...(params?.groupId ? { groupInfo: { groupId: params.groupId } } : {}),
         },
       },
@@ -181,13 +184,47 @@ describe("Signal durable ingress", () => {
   });
 
   it.each([
-    { description: "phone-only delivery gains a UUID", phoneFirst: true },
-    { description: "dual-identity delivery loses its UUID", phoneFirst: false },
-  ])("dedupes after restart when $description", async ({ phoneFirst }) => {
+    { description: "direct phone-only delivery gains a UUID", phoneFirst: true },
+    { description: "direct dual-identity delivery loses its UUID", phoneFirst: false },
+    {
+      description: "group phone-only delivery gains a UUID",
+      phoneFirst: true,
+      groupId: "group-123",
+    },
+    {
+      description: "group dual-identity delivery loses its UUID",
+      phoneFirst: false,
+      groupId: "group-123",
+    },
+    {
+      description: "approval reaction delivery gains a UUID",
+      phoneFirst: true,
+      reaction: true,
+    },
+    {
+      description: "approval reaction delivery loses its UUID",
+      phoneFirst: false,
+      reaction: true,
+    },
+    {
+      description: "group reaction delivery gains a UUID",
+      phoneFirst: true,
+      groupId: "group-123",
+      reaction: true,
+    },
+    {
+      description: "group reaction delivery loses its UUID",
+      phoneFirst: false,
+      groupId: "group-123",
+      reaction: true,
+    },
+  ])("dedupes after restart when $description", async ({ phoneFirst, groupId, reaction }) => {
     await withQueue(async (queue) => {
       const shared = {
         senderNumber: "+15550002222",
         timestamp: 1_700_000_000_099,
+        ...(groupId ? { groupId } : {}),
+        ...(reaction ? { reaction } : {}),
       };
       const phoneOnly = signalEvent(shared);
       const withUuid = signalEvent({

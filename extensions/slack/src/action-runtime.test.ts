@@ -1892,6 +1892,20 @@ describe("handleSlackAction", () => {
     expect(readSlackMessages).not.toHaveBeenCalled();
   });
 
+  it("rejects Slack reads for non-allowlisted target channels", async () => {
+    const cfg = slackConfig({
+      groupPolicy: "allowlist",
+      channels: {
+        C_ALLOWED: { enabled: true },
+      },
+    });
+
+    await expect(
+      handleSlackAction({ action: "readMessages", channelId: "C_OTHER" }, cfg),
+    ).rejects.toThrow("Slack read target channel is not allowed.");
+    expect(readSlackMessages).not.toHaveBeenCalled();
+  });
+
   it("allows Slack reads from unlisted targets when group policy is open", async () => {
     readSlackMessages.mockResolvedValueOnce({ messages: [], hasMore: false });
 
