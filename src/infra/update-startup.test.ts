@@ -13,6 +13,7 @@ import {
   closeOpenClawStateDatabaseForTest,
   runOpenClawStateWriteTransaction,
 } from "../state/openclaw-state-db.js";
+import { createTestGatewayScheduler } from "../test-utils/gateway-scheduler-clock.js";
 import {
   createOpenClawTestState,
   type OpenClawTestState,
@@ -21,6 +22,7 @@ import type { GatewayActiveWorkInspectors } from "./gateway-active-work.js";
 import { writeUpdateInstallReceiptRowSync } from "./restart-sentinel-store.js";
 import { readRestartSentinel, writeRestartSentinel } from "./restart-sentinel.js";
 import { UpdateCampaignController } from "./update-campaign.js";
+import { createGatewayUpdateLifecycle } from "./update-check-lifecycle.js";
 import type { UpdateCheckResult } from "./update-check.js";
 import { getUpdateRun, listUpdateRuns } from "./update-run-ledger.js";
 import { createDevGitStatus } from "./update-startup-git.test-support.js";
@@ -161,6 +163,7 @@ type PersistedUpdateCheckState = {
 describe("update-startup", () => {
   let tempDir: string;
   let testState: OpenClawTestState;
+  let scheduler: ReturnType<typeof createTestGatewayScheduler>;
   let handoffTransferStarted: ReturnType<typeof createDeferred<void>>;
   let triageResult: Extract<
     Awaited<ReturnType<typeof runUpdateFailureTriageMock>>,
@@ -183,13 +186,17 @@ describe("update-startup", () => {
 
   type UpdateCheckFixtureParams = Omit<
     Parameters<typeof createGatewayUpdateCheck>[0],
-    "getConfig"
+    "getConfig" | "lifecycle"
   > & {
     cfg: OpenClawConfig;
   };
 
   function createTestUpdateCheck({ cfg, ...params }: UpdateCheckFixtureParams) {
-    const check = createGatewayUpdateCheck({ ...params, getConfig: () => cfg });
+    const check = createGatewayUpdateCheck({
+      ...params,
+      getConfig: () => cfg,
+      lifecycle: createGatewayUpdateLifecycle(scheduler),
+    });
     updateChecks.add(check);
     return check;
   }
@@ -226,6 +233,7 @@ describe("update-startup", () => {
     versionMock.value = "1.0.0";
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-01-17T10:00:00Z"));
+    scheduler = createTestGatewayScheduler("fake-timers");
     testState = await createOpenClawTestState({
       layout: "state-only",
       prefix: "openclaw-update-check-suite-",
@@ -299,14 +307,15 @@ describe("update-startup", () => {
       handoffId: "auto-handoff-id",
       installRoot: "/opt/openclaw",
     });
-    resetUpdateAvailableStateForTest();
+    resetUpdateAvailableStateForTest(scheduler);
     createTestUpdateCheck({ cfg: {}, log: { info: vi.fn() }, isNixMode: false });
   });
 
   afterEach(async () => {
     await Promise.all([...updateChecks].map((check) => check.stop()));
     updateChecks.clear();
-    resetUpdateAvailableStateForTest();
+    resetUpdateAvailableStateForTest(scheduler);
+    await scheduler.stop();
     vi.useRealTimers();
     closeOpenClawStateDatabaseForTest();
     await testState.cleanup();
@@ -654,7 +663,7 @@ describe("update-startup", () => {
       mockPackageUpdateStatus("latest", "2.0.0");
       await runStableUpdateCheck({});
       if (resetProcess) {
-        resetUpdateAvailableStateForTest();
+        resetUpdateAvailableStateForTest(scheduler);
       }
       mockNpmChannelTag("beta", "3.0.0-beta.1");
       checkTelemetryUpdateMock.mockResolvedValue({ version: "2.0.0" });
@@ -1097,7 +1106,7 @@ describe("update-startup", () => {
   it("does not resolve the npm channel for an extended-stable Git install", async () => {
     await seedExtendedStableAvailability();
     seedStableAutoRolloutState();
-    resetUpdateAvailableStateForTest();
+    resetUpdateAvailableStateForTest(scheduler);
     vi.mocked(resolveOpenClawPackageRoot).mockClear();
     vi.mocked(checkUpdateStatus).mockClear();
     vi.mocked(resolveNpmChannelTag).mockClear();
@@ -1896,7 +1905,12 @@ describe("update-startup", () => {
     mockPackageUpdateStatus("beta", "2.0.0-beta.1");
     process.env.NODE_ENV = "production";
     let cfg: OpenClawConfig = { update: { channel: "beta" } };
-    const params = { getConfig: () => cfg, log: { info: vi.fn() }, isNixMode: false };
+    const params = {
+      getConfig: () => cfg,
+      log: { info: vi.fn() },
+      isNixMode: false,
+      lifecycle: createGatewayUpdateLifecycle(scheduler),
+    };
     const check = createGatewayUpdateCheck(params);
     updateChecks.add(check);
     check.start();
@@ -2999,6 +3013,7 @@ describe("update-startup", () => {
     const info = vi.fn();
     let currentConfig = cfg;
     const check = createGatewayUpdateCheck({
+      lifecycle: createGatewayUpdateLifecycle(scheduler),
       getConfig: () => currentConfig,
       log: { info },
       isNixMode: false,
