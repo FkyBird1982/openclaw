@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createDeferred } from "../../test/helpers/promise.js";
 import type { SkillBinTrustEntry } from "../infra/exec-approvals.js";
 import { NODE_DEVICE_APPS_COMMAND } from "../infra/node-commands.js";
-import type { OpenClawPluginNodeHostCommandIo } from "../plugins/types.js";
 import { NODE_DESKTOP_STREAM_COMMAND } from "../shared/node-desktop-stream.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import type { SkillBinsProvider } from "./invoke.js";
