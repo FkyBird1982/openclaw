@@ -351,7 +351,13 @@ describe("mattermost reactions", () => {
       return new Response(body, { status: 200, headers: { "content-type": "application/json" } });
     });
 
-    const result = await removeReactionWithFetch(fetchMock);
+    const result = await removeMattermostReaction({
+      cfg: createMattermostTestConfig(cacheKey),
+      postId: "POST1",
+      emojiName: "thumbsup",
+      conversationReadOrigin: "direct-operator",
+      fetchImpl: fetchMock,
+    });
 
     expect(result).toEqual({ ok: true });
     expect(fetchMock.mock.calls.map((call) => requestUrl(call[0]))).toEqual([
