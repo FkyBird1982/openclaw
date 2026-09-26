@@ -94,7 +94,11 @@ export function resolveImapConfig(
       },
       allowedSenders: filterStringEntries(account.allowedSenders),
       senderAuth: {
-        min: SENDER_STRENGTHS.find((strength) => strength === min) ?? "verified",
+        // The predicate requires every SDK strength to remain in the local config values.
+        min:
+          SENDER_STRENGTHS.find(
+            (strength): strength is IdentifierAuthentication => strength === min,
+          ) ?? "verified",
         trustedAuthservIds: filterStringEntries(senderAuth?.trustedAuthservIds),
         acceptTrustedAuthservId: senderAuth?.acceptTrustedAuthservId === true,
       },
