@@ -13,14 +13,12 @@ import {
   type QaBusReactToMessageInput,
   type QaBusReadMessageInput,
   type QaBusOutboundMessageInput,
-} from "openclaw/plugin-sdk/qa-channel-protocol";
-import type {
-  QaBusInboundMessageInput,
-  QaBusMessage,
-  QaBusPollResult,
-  QaBusSearchMessagesInput,
-  QaBusStateSnapshot,
-  QaBusThread,
+  type QaBusInboundMessageInput,
+  type QaBusMessage,
+  type QaBusPollResult,
+  type QaBusSearchMessagesInput,
+  type QaBusStateSnapshot,
+  type QaBusThread,
 } from "openclaw/plugin-sdk/qa-channel-protocol";
 import { readByteStreamWithLimit } from "openclaw/plugin-sdk/response-limit-runtime";
 import { fetchWithSsrFGuard } from "openclaw/plugin-sdk/ssrf-runtime";

@@ -155,7 +155,7 @@ export const zaloSetupWizard: ChannelSetupWizard = {
         }
       })();
 
-      const promptWebhookSecret = (hasConfigToken: boolean) =>
+      const promptWebhookSecret = (hasWebhookSecret: boolean) =>
         promptSingleChannelSecretInput({
           cfg: next,
           prompter,
@@ -163,8 +163,8 @@ export const zaloSetupWizard: ChannelSetupWizard = {
           credentialLabel: t("wizard.zalo.webhookSecret"),
           secretInputMode: options?.secretInputMode,
           ...buildSingleChannelSecretPromptState({
-            accountConfigured: hasConfigToken,
-            hasConfigToken,
+            accountConfigured: hasWebhookSecret,
+            hasConfigToken: hasWebhookSecret,
             allowEnv: false,
           }),
           envPrompt: "",
