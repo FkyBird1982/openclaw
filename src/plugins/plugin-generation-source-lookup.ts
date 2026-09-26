@@ -37,13 +37,6 @@ function createRecoverySourceResolver(
   };
 }
 
-function createRecoverySourceDisposal(recovery: ReturnType<typeof createPluginSourceCapture>) {
-  return {
-    dispose: () => recovery.dispose(),
-    disposeAsync: () => recovery.disposeAsync(),
-  };
-}
-
 function captureRecoverySource({
   rootDir,
   sourceRoot,
@@ -76,7 +69,8 @@ function captureRecoverySource({
     return {
       rootDir: relocate(capturedRoot),
       resolve: createRecoverySourceResolver(rootDir, sourceRoot, sources),
-      ...createRecoverySourceDisposal(recovery),
+      dispose: () => recovery.dispose(),
+      disposeAsync: () => recovery.disposeAsync(),
     };
   } catch (error) {
     recovery.dispose();
