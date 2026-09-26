@@ -95,13 +95,13 @@ export function startPluginLegacyListeners(params: {
       }
       // Native Node expectations and Upgrade fallback match the shipped private servers.
       server.on("request", (req, res) => {
-        const endpoint = listener.endpoint;
-        if (endpoint.health && req.url === endpoint.health.path) {
+        const activeEndpoint = listener.endpoint;
+        if (activeEndpoint.health && req.url === activeEndpoint.health.path) {
           void runHttpConnectionRequest(
             req,
             async () => {
-              if (endpoint.health?.contentType) {
-                res.setHeader("Content-Type", endpoint.health.contentType);
+              if (activeEndpoint.health?.contentType) {
+                res.setHeader("Content-Type", activeEndpoint.health.contentType);
               }
               res.writeHead(200);
               res.end("ok");
@@ -110,7 +110,7 @@ export function startPluginLegacyListeners(params: {
           ).catch((error: unknown) => res.destroy(error instanceof Error ? error : undefined));
           return;
         }
-        markPluginHttpLegacyListener(req, endpoint);
+        markPluginHttpLegacyListener(req, activeEndpoint);
         params.gatewayServer.emit("request", req, res);
       });
       server.on("error", (error) => {
